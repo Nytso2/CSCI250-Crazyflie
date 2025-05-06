@@ -3,9 +3,11 @@ import cv2
 import numpy as np
 from math import cos, sin
 from pid_controller import pid_velocity_fixed_height_controller
+from time import time
 
 FLYING_ATTITUDE = 1
 
+start = time()
 if __name__ == '__main__':
     robot = Robot()
     timestep = int(robot.getBasicTimeStep())
@@ -98,8 +100,52 @@ if __name__ == '__main__':
 
         height_desired += height_diff_desired * dt
 
-        # PID control - all movement is here :::
         
+
+        # Display camera
+        width = camera.getWidth()
+        height = camera.getHeight()
+        camera_data = camera.getImage()
+        img = np.frombuffer(camera_data, np.uint8).reshape((height, width, 4))
+        img_bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+
+        # === GREEN DETECTION WITH CENTER POINT ===
+        hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+        lower_green = np.array([40, 70, 70])
+        upper_green = np.array([80, 255, 255])
+        mask = cv2.inRange(hsv, lower_green, upper_green)
+
+        # Find contours
+        contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        if contours:
+            largest = max(contours, key=cv2.contourArea)
+            M = cv2.moments(largest)
+            if M["m00"] != 0:
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+                # Draw a red dot at the center
+                cv2.circle(img_bgr, (cX, cY), 5, (0, 0, 255), -1)
+                cv2.putText(img_bgr, "Center", (cX - 20, cY - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+                
+                xDiff = cX - width // 2
+                yDiff = cY - height // 2
+                print(xDiff, yDiff)
+                
+                height_diff_desired -= yDiff * 0.002
+                height_desired += height_diff_desired * dt
+                
+                sideways_desired -= xDiff * 0.002
+                
+                # Draw a horizontal line (from x=50 to x=450, at y=250)
+                cv2.line(img_bgr, (0, width // 2), (width, width // 2), (0, 255, 0), 2)
+        
+                # Draw a vertical line (from y=50 to y=450, at x=250)
+                cv2.line(img_bgr, (width // 2, 0), (width // 2, width), (255, 0, 0), 2)
+                
+        # Show the final image
+        cv2.imshow("Green Object Center", img_bgr)
+        
+        # PID control
         motor_power = PID_crazyflie.pid(dt, forward_desired, sideways_desired,
                                         yaw_desired, height_desired,
                                         roll, pitch, yaw_rate,
@@ -115,35 +161,7 @@ if __name__ == '__main__':
         past_time = robot.getTime()
         past_x_global = x_global
         past_y_global = y_global
-
-        # Display camera
-        width = camera.getWidth()
-        height = camera.getHeight()
-        camera_data = camera.getImage()
-        img = np.frombuffer(camera_data, np.uint8).reshape((height, width, 4))
-        img_bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
-
-        #GREEN DETECTION WITH CENTER POINT
-        hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
-        lower_green = np.array([40, 70, 70])
-        upper_green = np.array([80, 255, 255])
-        mask = cv2.inRange(hsv, lower_green, upper_green)
-
-        # draw
-        contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        if contours:
-            largest = max(contours, key=cv2.contourArea) # filter for noise // finding the largest blob
-            M = cv2.moments(largest)
-            if M["m00"] != 0:
-                cX = int(M["m10"] / M["m00"]) # x cordinate center of mass
-                cY = int(M["m01"] / M["m00"]) # y cordinate center of mass
-                # Draw a red dot at the center
-                cv2.circle(img_bgr, (cX, cY), 5, (0, 0, 255), -1)
-                cv2.putText(img_bgr, "Center", (cX - 20, cY - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-
-        # Show the final image
-        cv2.imshow("OPENCV-Camera", img_bgr)
-
+        
         # ESC key to stop
         key_val = cv2.waitKey(1)
         if key_val == 27:  # ESC
