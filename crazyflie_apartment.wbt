@@ -143,11 +143,25 @@ Wall {
   name "wall 5"
   size 0.3 7.9 2.4
 }
-Ball {
-  translation -5.124999921007534 -0.5125999996771563 0.7424136720131782
+Solid {
+  translation -5.124999921007534 -0.5125999996771563 0.9424136720131782
   rotation -0.0040867881198694885 0.9999916490465574 1.0170708160569682e-07 5.003935761557539e-07
-  color 0.646616 1 0
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0 1 0
+        }
+      }
+      geometry Sphere {
+        radius 0.05
+      }
+    }
+  ]
+  name "Ball"
+  physics NULL
 }
+
 Wall {
   translation -9.4 0 0
   rotation 0 0 1 1.5708
