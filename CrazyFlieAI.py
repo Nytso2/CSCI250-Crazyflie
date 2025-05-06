@@ -98,7 +98,8 @@ if __name__ == '__main__':
 
         height_desired += height_diff_desired * dt
 
-        # PID control
+        # PID control - all movement is here :::
+        
         motor_power = PID_crazyflie.pid(dt, forward_desired, sideways_desired,
                                         yaw_desired, height_desired,
                                         roll, pitch, yaw_rate,
@@ -122,26 +123,26 @@ if __name__ == '__main__':
         img = np.frombuffer(camera_data, np.uint8).reshape((height, width, 4))
         img_bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
 
-        # === GREEN DETECTION WITH CENTER POINT ===
+        #GREEN DETECTION WITH CENTER POINT
         hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
         lower_green = np.array([40, 70, 70])
         upper_green = np.array([80, 255, 255])
         mask = cv2.inRange(hsv, lower_green, upper_green)
 
-        # Find contours
+        # draw
         contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if contours:
-            largest = max(contours, key=cv2.contourArea)
+            largest = max(contours, key=cv2.contourArea) # filter for noise // finding the largest blob
             M = cv2.moments(largest)
             if M["m00"] != 0:
-                cX = int(M["m10"] / M["m00"])
-                cY = int(M["m01"] / M["m00"])
+                cX = int(M["m10"] / M["m00"]) # x cordinate center of mass
+                cY = int(M["m01"] / M["m00"]) # y cordinate center of mass
                 # Draw a red dot at the center
                 cv2.circle(img_bgr, (cX, cY), 5, (0, 0, 255), -1)
                 cv2.putText(img_bgr, "Center", (cX - 20, cY - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
 
         # Show the final image
-        cv2.imshow("Green Object Center", img_bgr)
+        cv2.imshow("OPENCV-Camera", img_bgr)
 
         # ESC key to stop
         key_val = cv2.waitKey(1)
