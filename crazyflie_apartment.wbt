@@ -143,7 +143,8 @@ Wall {
   name "wall 5"
   size 0.3 7.9 2.4
 }
-Solid {
+
+DEF Ball Solid {
   translation -5.124999921007534 -0.5125999996771563 0.9424136720131782
   rotation -0.0040867881198694885 0.9999916490465574 1.0170708160569682e-07 5.003935761557539e-07
   children [
@@ -158,8 +159,9 @@ Solid {
       }
     }
   ]
-  name "Ball"
-  physics NULL
+  boundingObject Sphere{
+    radius 0.05
+  }
 }
 
 Wall {
@@ -564,4 +566,9 @@ Crazyflie {
   translation -5.202582004741026 -2.083937952026571 1.001319165473335
   rotation 1.5678108583175015e-05 -1.384233953863585e-05 0.9999999997812934 1.6105312382920505
   controller "CrazyFlieAI"
+}
+Robot {
+  name "BallSupervisor"
+  supervisor TRUE
+  controller "ball_supervisor"
 }
