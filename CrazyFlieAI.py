@@ -131,10 +131,11 @@ if __name__ == '__main__':
                 yDiff = cY - height // 2
                 print(xDiff, yDiff)
                 
-                height_diff_desired -= yDiff * 0.002
+                height_diff_desired -= yDiff * 0.001
+                yaw_desired -= xDiff * 0.002 
                 height_desired += height_diff_desired * dt
                 
-                sideways_desired -= xDiff * 0.002
+                # sideways_desired -= xDiff * 0.002
                 
                 # Draw a horizontal line (from x=50 to x=450, at y=250)
                 cv2.line(img_bgr, (0, width // 2), (width, width // 2), (0, 255, 0), 2)
