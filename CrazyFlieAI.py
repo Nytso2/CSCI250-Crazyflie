@@ -5,7 +5,7 @@ from math import cos, sin
 from pid_controller import pid_velocity_fixed_height_controller
 from time import time
 
-FLYING_ATTITUDE = 1
+FLYING_ATTITUDE = .65
 
 start = time()
 if __name__ == '__main__':
@@ -79,24 +79,24 @@ if __name__ == '__main__':
 
         # Handle keyboard input
         key = keyboard.getKey()
-        while key > 0:
-            if key == Keyboard.UP:
-                forward_desired += 0.5
-            elif key == Keyboard.DOWN:
-                forward_desired -= 0.5
-            elif key == Keyboard.RIGHT:
-                sideways_desired -= 0.5
-            elif key == Keyboard.LEFT:
-                sideways_desired += 0.5
-            elif key == ord('Q'):
-                yaw_desired = +1
-            elif key == ord('E'):
-                yaw_desired = -1
-            elif key == ord('W'):
-                height_diff_desired = 0.1
-            elif key == ord('S'):
-                height_diff_desired = -0.1
-            key = keyboard.getKey()
+        # while key > 0:
+            # if key == Keyboard.UP:
+                # forward_desired += 0.5
+            # elif key == Keyboard.DOWN:
+                # forward_desired -= 0.5
+            # elif key == Keyboard.RIGHT:
+                # sideways_desired -= 0.5
+            # elif key == Keyboard.LEFT:
+                # sideways_desired += 0.5
+            # elif key == ord('Q'):
+                # yaw_desired = +1
+            # elif key == ord('E'):
+                # yaw_desired = -1
+            # elif key == ord('W'):
+                # height_diff_desired = 0.1
+            # elif key == ord('S'):
+                # height_diff_desired = -0.1
+            # key = keyboard.getKey()
 
         height_desired += height_diff_desired * dt
 
@@ -119,6 +119,9 @@ if __name__ == '__main__':
         contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if contours:
             largest = max(contours, key=cv2.contourArea)
+            ((x, y), radius) = cv2.minEnclosingCircle(largest)
+            
+            largest = max(contours, key=cv2.contourArea)
             M = cv2.moments(largest)
             if M["m00"] != 0:
                 cX = int(M["m10"] / M["m00"])
@@ -132,7 +135,7 @@ if __name__ == '__main__':
                 print(xDiff, yDiff)
                 
                 height_diff_desired -= yDiff * 0.001
-                yaw_desired -= xDiff * 0.002 
+                yaw_desired -= xDiff * 0.02 
                 height_desired += height_diff_desired * dt
                 
                 # sideways_desired -= xDiff * 0.002
@@ -142,6 +145,8 @@ if __name__ == '__main__':
         
                 # Draw a vertical line (from y=50 to y=450, at x=250)
                 cv2.line(img_bgr, (width // 2, 0), (width // 2, width), (255, 0, 0), 2)
+                
+                print(f"Ball radius: {radius:.2f} pixels")
                 
         # Show the final image
         cv2.imshow("Green Object Center", img_bgr)
