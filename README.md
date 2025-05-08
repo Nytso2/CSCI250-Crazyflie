@@ -28,6 +28,7 @@ This repository contains code for controlling a Crazyflie drone and managing a b
 You can install the required Python packages using:
 
 ```bash
+pip install numpy
 pip install opencv-python numpy
 ```
 
