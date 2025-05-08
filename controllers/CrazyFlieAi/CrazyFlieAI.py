@@ -19,7 +19,7 @@ FLYING_ATTITUDE = 0.7
 
 # new tuning params
 TARGET_DIAM   = 75    # desired diameter in pixels
-K_DIST        = 0.010  # m/s per pixel deficit
+K_DIST        = 0.007  # m/s per pixel deficit
 MAX_FORWARD_SPEED = 2.0    # clamp at 1 m/s
 
 start = time()
