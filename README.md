@@ -32,7 +32,7 @@ pip install numpy
 pip install opencv-python numpy
 ```
 
-#Usage
+# Usage
 - Run the Ball Supervisor: Start the ball supervisor in Webots to control the ball manually.
 - Use the arrow keys or W/S to move the ball.
 - Use Q/E to rotate the ball's yaw.
