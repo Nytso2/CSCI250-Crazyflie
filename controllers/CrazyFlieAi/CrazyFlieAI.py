@@ -1,3 +1,13 @@
+"""
+File name: CrazyFlieAI.py
+
+Authors: 
+
+Description: 
+
+"""
+
+
 from controller import Robot, Keyboard
 import cv2
 import numpy as np
@@ -42,7 +52,7 @@ if __name__ == '__main__':
     height_desired = FLYING_ATTITUDE
     PID = pid_velocity_fixed_height_controller()
 
-    print("\n====== Controls =======")
+    print("\n====== Controls for ball =======")
     print("Use ↑ ↓ ← → or W/S for movement")
     print("Q/E to rotate yaw")
     print("ESC to stop\n")
@@ -139,7 +149,7 @@ if __name__ == '__main__':
 
         # show image
         cv2.imshow("Green Ball Tracking", img_bgr)
-        if cv2.waitKey(1) == 27:
+        if cv2.waitKey(1) == 27: # press esc if you want to
             break
 
         # PID → motors
