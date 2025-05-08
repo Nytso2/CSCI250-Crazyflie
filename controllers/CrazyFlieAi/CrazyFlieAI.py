@@ -5,171 +5,155 @@ from math import cos, sin
 from pid_controller import pid_velocity_fixed_height_controller
 from time import time
 
-FLYING_ATTITUDE = .65
+FLYING_ATTITUDE = 0.7
 
-start = time()
+# new tuning params
+TARGET_DIAM   = 75    # desired diameter in pixels
+K_DIST        = 0.001  # m/s per pixel deficit
+MAX_FORWARD_SPEED = 1.0    # clamp at 1 m/s
+
+
 if __name__ == '__main__':
     robot = Robot()
     timestep = int(robot.getBasicTimeStep())
 
     # Initialize motors
     motors = []
-    for name, sign in zip(["m1_motor", "m2_motor", "m3_motor", "m4_motor"], [-1, 1, -1, 1]):
-        motor = robot.getDevice(name)
-        motor.setPosition(float('inf'))
-        motor.setVelocity(sign)
-        motors.append(motor)
+    for name, sign in zip(["m1_motor","m2_motor","m3_motor","m4_motor"], [-1,1,-1,1]):
+        m = robot.getDevice(name)
+        m.setPosition(float('inf'))
+        m.setVelocity(sign)
+        motors.append(m)
 
     # Initialize sensors
-    imu = robot.getDevice("inertial_unit")
-    imu.enable(timestep)
-    gps = robot.getDevice("gps")
-    gps.enable(timestep)
-    gyro = robot.getDevice("gyro")
-    gyro.enable(timestep)
-    camera = robot.getDevice("camera")
-    camera.enable(timestep)
-    range_front = robot.getDevice("range_front")
-    range_left = robot.getDevice("range_left")
-    range_back = robot.getDevice("range_back")
-    range_right = robot.getDevice("range_right")
-    for sensor in [range_front, range_left, range_back, range_right]:
-        sensor.enable(timestep)
+    imu    = robot.getDevice("inertial_unit"); imu.enable(timestep)
+    gps    = robot.getDevice("gps");           gps.enable(timestep)
+    gyro   = robot.getDevice("gyro");          gyro.enable(timestep)
+    camera = robot.getDevice("camera");        camera.enable(timestep)
+    for rng in ("range_front","range_left","range_back","range_right"):
+        s = robot.getDevice(rng); s.enable(timestep)
 
-    # Enable keyboard
-    keyboard = Keyboard()
-    keyboard.enable(timestep)
+    # Keyboard
+    keyboard = Keyboard(); keyboard.enable(timestep)
 
-    # Variables
+    # State
     past_x_global = past_y_global = past_time = 0
     first_time = True
     height_desired = FLYING_ATTITUDE
-    PID_crazyflie = pid_velocity_fixed_height_controller()
+    PID = pid_velocity_fixed_height_controller()
 
-    print("\n====== Controls =======\n")
+    print("\n====== Controls =======")
     print("Use ↑ ↓ ← → or W/S for movement")
     print("Q/E to rotate yaw")
-    print("ESC to close OpenCV window and stop controller\n")
+    print("ESC to stop\n")
 
     while robot.step(timestep) != -1:
-        dt = robot.getTime() - past_time
+        t = robot.getTime()
+        dt = t - past_time
+        past_time = t
 
+        # First‐time GPS init
         if first_time:
-            past_x_global = gps.getValues()[0]
-            past_y_global = gps.getValues()[1]
-            past_time = robot.getTime()
+            past_x_global, past_y_global = gps.getValues()[0:2]
             first_time = False
 
-        # Sensor values
+        # Read sensors
         roll, pitch, yaw = imu.getRollPitchYaw()
         yaw_rate = gyro.getValues()[2]
-        x_global, y_global, altitude = gps.getValues()
-        v_x_global = (x_global - past_x_global) / dt
-        v_y_global = (y_global - past_y_global) / dt
-        cos_yaw = cos(yaw)
-        sin_yaw = sin(yaw)
-        v_x = v_x_global * cos_yaw + v_y_global * sin_yaw
-        v_y = -v_x_global * sin_yaw + v_y_global * cos_yaw
+        xg, yg, altitude = gps.getValues()
+        v_xg = (xg - past_x_global) / dt
+        v_yg = (yg - past_y_global) / dt
+        past_x_global, past_y_global = xg, yg
 
-        # Desired motion
-        forward_desired = 0
-        sideways_desired = 0
-        yaw_desired = 0
-        height_diff_desired = 0
+        cos_y = cos(yaw); sin_y = sin(yaw)
+        v_x =  v_xg * cos_y + v_yg * sin_y
+        v_y = -v_xg * sin_y + v_yg * cos_y
 
-        # Handle keyboard input
+        # Desired motion defaults
+        forward_desired = 0.0
+        sideways_desired = 0.0
+        yaw_desired = 0.0
+        height_diff_desired = 0.0
+
+        # Keyboard overrides
         key = keyboard.getKey()
         # while key > 0:
-            # if key == Keyboard.UP:
-                # forward_desired += 0.5
-            # elif key == Keyboard.DOWN:
-                # forward_desired -= 0.5
-            # elif key == Keyboard.RIGHT:
-                # sideways_desired -= 0.5
-            # elif key == Keyboard.LEFT:
-                # sideways_desired += 0.5
-            # elif key == ord('Q'):
-                # yaw_desired = +1
-            # elif key == ord('E'):
-                # yaw_desired = -1
-            # elif key == ord('W'):
-                # height_diff_desired = 0.1
-            # elif key == ord('S'):
-                # height_diff_desired = -0.1
-            # key = keyboard.getKey()
-
+        #     if key == Keyboard.UP:    forward_desired += 0.5
+        #     elif key == Keyboard.DOWN:forward_desired -= 0.5
+        #     elif key == Keyboard.RIGHT: sideways_desired -= 0.5
+        #     elif key == Keyboard.LEFT:  sideways_desired += 0.5
+        #     elif key == ord('Q'):      yaw_desired =  +1
+        #     elif key == ord('E'):      yaw_desired =  -1
+        #     elif key == ord('W'):      height_diff_desired =  0.1
+        #     elif key == ord('S'):      height_diff_desired = -0.1
+        #     key = keyboard.getKey()
         height_desired += height_diff_desired * dt
 
+        # Capture image
         
-
-        # Display camera
-        width = camera.getWidth()
-        height = camera.getHeight()
-        camera_data = camera.getImage()
-        img = np.frombuffer(camera_data, np.uint8).reshape((height, width, 4))
+        w = camera.getWidth(); h = camera.getHeight()
+        data = camera.getImage()
+        img = np.frombuffer(data, np.uint8).reshape((h, w, 4))
         img_bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
 
-        # === GREEN DETECTION WITH CENTER POINT ===
+        # === GREEN DETECTION & DIAMETER-BASED FORWARD MOTION ===
         hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
-        lower_green = np.array([40, 70, 70])
-        upper_green = np.array([80, 255, 255])
-        mask = cv2.inRange(hsv, lower_green, upper_green)
+        mask = cv2.inRange(hsv, np.array([40,70,70]), np.array([80,255,255]))
+        cnts, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        # Find contours
-        contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        if contours:
-            largest = max(contours, key=cv2.contourArea)
-            ((x, y), radius) = cv2.minEnclosingCircle(largest)
-            
-            largest = max(contours, key=cv2.contourArea)
+        if cnts:
+            largest = max(cnts, key=cv2.contourArea)
             M = cv2.moments(largest)
             if M["m00"] != 0:
-                cX = int(M["m10"] / M["m00"])
-                cY = int(M["m01"] / M["m00"])
-                # Draw a red dot at the center
-                cv2.circle(img_bgr, (cX, cY), 5, (0, 0, 255), -1)
-                cv2.putText(img_bgr, "Center", (cX - 20, cY - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-                
-                xDiff = cX - width // 2
-                yDiff = cY - height // 2
-                print(xDiff, yDiff)
-                
+                # center point
+                cX = int(M["m10"]/M["m00"])
+                cY = int(M["m01"]/M["m00"])
+                cv2.circle(img_bgr, (cX,cY), 5, (0,0,255), -1)
+
+                # x/y offset→ yaw/height as before
+                xDiff = cX - w//2
+                yDiff = cY - h//2
                 height_diff_desired -= yDiff * 0.001
-                yaw_desired -= xDiff * 0.02 
-                height_desired += height_diff_desired * dt
-                
-                # sideways_desired -= xDiff * 0.002
-                
-                # Draw a horizontal line (from x=50 to x=450, at y=250)
-                cv2.line(img_bgr, (0, width // 2), (width, width // 2), (0, 255, 0), 2)
-        
-                # Draw a vertical line (from y=50 to y=450, at x=250)
-                cv2.line(img_bgr, (width // 2, 0), (width // 2, width), (255, 0, 0), 2)
-                
-                print(f"Ball radius: {radius:.2f} pixels")
-                
-        # Show the final image
-        cv2.imshow("Green Object Center", img_bgr)
-        
-        # PID control
-        motor_power = PID_crazyflie.pid(dt, forward_desired, sideways_desired,
-                                        yaw_desired, height_desired,
-                                        roll, pitch, yaw_rate,
-                                        altitude, v_x, v_y)
+                yaw_desired         -= xDiff * 0.02
+                height_desired     += height_diff_desired * dt
 
-        # Apply motor power
-        motors[0].setVelocity(-motor_power[0])
-        motors[1].setVelocity(motor_power[1])
-        motors[2].setVelocity(-motor_power[2])
-        motors[3].setVelocity(motor_power[3])
+                # compute circle diameter
+                (cx,cy), radius = cv2.minEnclosingCircle(largest)
+                diam = 2 * radius
 
-        # Save state
-        past_time = robot.getTime()
-        past_x_global = x_global
-        past_y_global = y_global
-        
-        # ESC key to stop
-        key_val = cv2.waitKey(1)
-        if key_val == 27:  # ESC
-            cv2.destroyAllWindows()
+                #move forward until diam >= TARGET_DIAM
+                if diam < TARGET_DIAM:
+                    forward_desired = (TARGET_DIAM - diam) * K_DIST
+                    #upper bound so we don't go too fast:
+                    forward_desired = min(forward_desired, MAX_FORWARD_SPEED)
+                else:
+                    forward_desired = 0.0
+
+                cv2.circle(img_bgr, (int(cx),int(cy)), int(radius), (255,0,0), 2)
+                cv2.putText(img_bgr, f"D={int(diam)}", (10,30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
+                
+                cv2.line(img_bgr, (0, w // 2), (w, w // 2), (0, 255, 0), 2)
+                cv2.line(img_bgr, (w // 2, 0), (w // 2, w), (255, 0, 0), 2)
+
+
+        # show image
+        cv2.imshow("Green Ball Tracking", img_bgr)
+        if cv2.waitKey(1) == 27:
             break
+
+        # PID → motors
+        motor_pw = PID.pid(dt,
+                           forward_desired,
+                           sideways_desired,
+                           yaw_desired,
+                           height_desired,
+                           roll, pitch, yaw_rate,
+                           altitude, v_x, v_y)
+
+        motors[0].setVelocity(-motor_pw[0])
+        motors[1].setVelocity( motor_pw[1])
+        motors[2].setVelocity(-motor_pw[2])
+        motors[3].setVelocity( motor_pw[3])
+
+    cv2.destroyAllWindows()
