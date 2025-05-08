@@ -33,9 +33,8 @@ pip install opencv-python numpy
 ```
 
 # Usage
-- Run the Ball Supervisor: Start the ball supervisor in Webots to control the ball manually.
-- Use the arrow keys or W/S to move the ball.
-- Use Q/E to rotate the ball's yaw.
-- Run CrazyFlieAI: Start the Crazyflie AI script to control the drone based on the ball's position.
-- The drone will automatically track and follow the green ball in the Webots environment.
+- Open the crazyflie_apartment.wbt world in Webots.
+- Set the controller for the drone to be CrazyFlieAI.py.
+- Play around with the arrow keys or W/S for height control and Q/E for yaw rotation and look how the drone follows the ball!
+
 
