@@ -1,36 +1,44 @@
+"""
+FileName: ball_supervisor.py
+Author : Luis Coronel
+Description: Managable ball with ↑ ↓ ← → or W/S for movement; Q/E to rotate yaw
+"""
+
 from controller import Supervisor, Keyboard
 
-supervisor = Supervisor()
-keyboard = Keyboard()
-keyboard.enable(int(supervisor.getBasicTimeStep()))
-timestep = int(supervisor.getBasicTimeStep())
+if __name__ == "__main__":
 
-# Get the Ball node
-ball = supervisor.getFromDef("Ball")
-if ball is None:
-    print("Ball node not found! Check DEF name.")
-    exit()
+    supervisor = Supervisor()
+    keyboard = Keyboard()
+    keyboard.enable(int(supervisor.getBasicTimeStep()))
+    timestep = int(supervisor.getBasicTimeStep())
 
-position_field = ball.getField("translation")
-position = position_field.getSFVec3f()
+    # Get the Ball node
+    ball = supervisor.getFromDef("Ball")
+    if ball is None:
+        print("Ball node not found! Check DEF name.")
+        exit()
 
-speed = 0.02  # Adjust as needed
+    position_field = ball.getField("translation")
+    position = position_field.getSFVec3f()
 
-while supervisor.step(timestep) != -1:
-    key = keyboard.getKey()
+    speed = 0.02  # Adjust speed that the ball moves at
 
-    # Check which key is pressed
-    if key == Keyboard.UP:
-        position[1] += speed
-    elif key == Keyboard.DOWN:
-        position[1] -= speed
-    elif key == Keyboard.LEFT:
-        position[0] -= speed
-    elif key == Keyboard.RIGHT:
-        position[0] += speed
-    elif key == ord('W'):
-        position[2] += speed
-    elif key == ord('S'):
-        position[2] -= speed
+    while supervisor.step(timestep) != -1:
+        key = keyboard.getKey()
 
-    position_field.setSFVec3f(position)
+        # Check which key is pressed
+        if key == Keyboard.UP:
+            position[1] += speed
+        elif key == Keyboard.DOWN:
+            position[1] -= speed
+        elif key == Keyboard.LEFT:
+            position[0] -= speed
+        elif key == Keyboard.RIGHT:
+            position[0] += speed
+        elif key == ord('W'):
+            position[2] += speed
+        elif key == ord('S'):
+            position[2] -= speed
+
+        position_field.setSFVec3f(position)
