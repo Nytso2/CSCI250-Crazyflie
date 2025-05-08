@@ -19,10 +19,10 @@ FLYING_ATTITUDE = 0.7
 
 # new tuning params
 TARGET_DIAM   = 75    # desired diameter in pixels
-K_DIST        = 0.001  # m/s per pixel deficit
-MAX_FORWARD_SPEED = 1.0    # clamp at 1 m/s
+K_DIST        = 0.010  # m/s per pixel deficit
+MAX_FORWARD_SPEED = 2.0    # clamp at 1 m/s
 
-
+start = time()
 if __name__ == '__main__':
     robot = Robot()
     timestep = int(robot.getBasicTimeStep())
@@ -121,18 +121,21 @@ if __name__ == '__main__':
                 cv2.circle(img_bgr, (cX,cY), 5, (0,0,255), -1)
 
                 # x/y offset→ yaw/height as before
-                xDiff = cX - w//2
-                yDiff = cY - h//2
-                height_diff_desired -= yDiff * 0.001
-                yaw_desired         -= xDiff * 0.02
-                height_desired     += height_diff_desired * dt
-
+                if time() - start > 4:
+                    xDiff = cX - w//2
+                    yDiff = cY - h//2
+                    height_diff_desired -= yDiff * 0.001
+                    yaw_desired         -= xDiff * 0.02
+                    # height_desired      -= yDiff * 0.0001
+                    # height_desired     += height_diff_desired * 0.001
+                    height_desired     += height_diff_desired * dt
+    
                 # compute circle diameter
                 (cx,cy), radius = cv2.minEnclosingCircle(largest)
                 diam = 2 * radius
 
                 #move forward until diam >= TARGET_DIAM
-                if diam < TARGET_DIAM:
+                if diam < TARGET_DIAM and time() - start > 4:
                     forward_desired = (TARGET_DIAM - diam) * K_DIST
                     #upper bound so we don't go too fast:
                     forward_desired = min(forward_desired, MAX_FORWARD_SPEED)
