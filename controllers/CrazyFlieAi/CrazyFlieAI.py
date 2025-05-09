@@ -15,7 +15,7 @@ from math import cos, sin
 from pid_controller import pid_velocity_fixed_height_controller
 from time import time
 
-FLYING_ATTITUDE = 0.7
+FLYING_ATTITUDE = 0.8
 
 # new tuning params
 TARGET_DIAM   = 75    # desired diameter in pixels
@@ -124,7 +124,7 @@ if __name__ == '__main__':
                 if time() - start > 4:
                     xDiff = cX - w//2
                     yDiff = cY - h//2
-                    height_diff_desired -= yDiff * 0.0015
+                    height_diff_desired -= yDiff * 0.002
                     yaw_desired         -= xDiff * 0.02
                     # height_desired      -= yDiff * 0.0001
                     # height_desired     += height_diff_desired * 0.001
@@ -145,9 +145,6 @@ if __name__ == '__main__':
                 cv2.circle(img_bgr, (int(cx),int(cy)), int(radius), (255,0,0), 2)
                 cv2.putText(img_bgr, f"D={int(diam)}", (10,30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
-                
-                cv2.putText(img_bgr, f"X={int(cx)}", (10,50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
-                cv2.putText(img_bgr, f"Y={int(cy)}", (10,70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
                 
                 cv2.line(img_bgr, (0, w // 2), (w, w // 2), (0, 255, 0), 2)
                 cv2.line(img_bgr, (w // 2, 0), (w // 2, w), (255, 0, 0), 2)
