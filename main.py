@@ -1,99 +1,62 @@
-"""
-Crazyflie 2.1 Keyboard Control Script (Windows Compatible)
-
-Controls:
-- Arrow keys: Forward/Backward/Left/Right
-- W/S: Up/Down
-- A/D: Yaw left/right
-- Esc: Stop and land
-
-Requirements:
-- pip install cflib keyboard
-- Crazyradio PA USB dongle plugged in
-"""
-
+import logging
 import time
 import threading
-import cflib.crtp  # Initialize the low-level drivers
+import curses
+
+import cflib.crtp
 from cflib.crazyflie import Crazyflie
-import keyboard  # Windows-friendly keyboard input
+from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.positioning.motion_commander import MotionCommander
 
-# Connection URI (change if needed)
-URI = 'radio://0/80/2M'
+# URI to the Crazyflie to connect to
+URI = 'radio://0/80/2M/E7E7E7E7E7'
 
-# Movement parameters
-THRUST = 37000
-ROLL = 0
-PITCH = 0
-YAW = 0
+# Set up logging
+logging.basicConfig(level=logging.ERROR)
 
-running = True
-cf = Crazyflie()
+# Initialize the low-level drivers (don't list the debug drivers)
+cflib.crtp.init_drivers()
 
-def connect_callback(link_uri):
-    print(f'Connected to {link_uri}')
-    # Start sending setpoints every 0.1s
-    threading.Thread(target=send_setpoints).start()
+# Flag to indicate when to stop the control loop
+stop_flag = False
 
-def disconnect_callback(link_uri):
-    print(f'Disconnected from {link_uri}')
-    global running
-    running = False
+def keyboard_control(stdscr, mc):
+    """
+    Capture keyboard input and send movement commands to the Crazyflie.
+    """
+    global stop_flag
+    stdscr.nodelay(True)
+    stdscr.clear()
+    stdscr.addstr(0, 0, "Use arrow keys to move. Press 'q' to quit.")
+    stdscr.refresh()
 
-def send_setpoints():
-    global running
-    while running:
-        cf.commander.send_setpoint(ROLL, PITCH, YAW, THRUST)
-        time.sleep(0.1)
-    # On exit, send zero thrust to land
-    for _ in range(20):
-        cf.commander.send_setpoint(0, 0, 0, 0)
-        time.sleep(0.1)
-    cf.commander.send_stop_setpoint()
-    cf.close_link()
+    while not stop_flag:
+        key = stdscr.getch()
+        if key == curses.KEY_UP:
+            #mc.forward(0.1)
+            mc.up(0.1)
+        elif key == curses.KEY_DOWN:
+            #mc.back(0.1)
+            mc.down(0.1)
+        elif key == curses.KEY_LEFT:
+            mc.left(0.1)
+        elif key == curses.KEY_RIGHT:
+            mc.right(0.1)
+        elif key == ord('q'):
+            stop_flag = True
+        time.sleep(0.01)
 
-def keyboard_listener():
-    global ROLL, PITCH, YAW, THRUST, running
+def main():
+    global stop_flag
+    with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
+        with MotionCommander(scf) as mc:
+            # Start the keyboard control in a separate thread
+            keyboard_thread = threading.Thread(target=curses.wrapper, args=(keyboard_control, mc))
+            keyboard_thread.start()
 
-    print("Use arrow keys to move, W/S to go up/down, A/D to yaw. Esc to exit.")
-
-    while running:
-        ROLL = 0
-        PITCH = 0
-        YAW = 0
-
-        if keyboard.is_pressed('up'):
-            PITCH = 10
-        if keyboard.is_pressed('down'):
-            PITCH = -10
-        if keyboard.is_pressed('left'):
-            ROLL = -10
-        if keyboard.is_pressed('right'):
-            ROLL = 10
-        if keyboard.is_pressed('w'):
-            THRUST = min(60000, THRUST + 500)
-        if keyboard.is_pressed('s'):
-            THRUST = max(20000, THRUST - 500)
-        if keyboard.is_pressed('a'):
-            YAW = -200
-        if keyboard.is_pressed('d'):
-            YAW = 200
-        if keyboard.is_pressed('esc'):
-            print("Landing and exiting...")
-            running = False
-
-        time.sleep(0.05)
+            # Keep the main thread alive until stop_flag is set
+            while not stop_flag:
+                time.sleep(0.1)
 
 if __name__ == '__main__':
-    cflib.crtp.init_drivers()
-    print("Scanning interfaces...")
-    try:
-        cf.open_link(URI)
-        cf.connected.add_callback(connect_callback)
-        cf.disconnected.add_callback(disconnect_callback)
-
-        keyboard_listener()
-
-    except KeyboardInterrupt:
-        print("Interrupted by user")
-        running = False
+    main()
