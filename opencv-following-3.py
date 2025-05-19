@@ -37,6 +37,7 @@ last_z = TAKEOFF_Z
 stop_flag = False
 frame_lock = threading.Lock()
 latest_frame = None
+
 prev_yDiff = 0.0
 
 def signal_handler(sig, frame):
@@ -102,7 +103,7 @@ def main():
                 forward_desired = 0.0
                 sideways_desired = 0.0
                 yaw_desired = 0.0
-                height_desired = 0.0
+                height_velocity = 0.0
 
                 now = time.time()
                 dt = now - prev_time
@@ -140,10 +141,8 @@ def main():
                             yaw_desired = xDiff * 0.02
 
                         if abs(yDiff) > 10:
-                            dy = (yDiff - prev_yDiff) / dt
-                            prev_yDiff = yDiff
-                            height_desired = yDiff * 0.002 - dy * 0.001
-                            height_desired = max(min(height_desired, MAX_FORWARD_SPD), -MAX_FORWARD_SPD)
+                            height_velocity = yDiff * 0.002
+                            height_velocity = max(min(height_velocity, MAX_FORWARD_SPD), -MAX_FORWARD_SPD)
 
                         (cx, cy), r = cv2.minEnclosingCircle(c)
                         diam = 2 * r
@@ -162,7 +161,7 @@ def main():
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     stop_flag = True
 
-                mc.start_linear_motion(forward_desired, sideways_desired, height_desired, yaw_desired)
+                mc.start_linear_motion(forward_desired, sideways_desired, height_velocity, yaw_desired)
 
             logging.info(">>> LANDING")
             mc.land()
