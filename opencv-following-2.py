@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+from os import altsep
 import cv2
 import numpy as np
 import time
@@ -27,12 +28,12 @@ MAX_FORWARD_SPD  = 0.8     # m/s cap
 START_DELAY      = 4.0     # s
 MIN_CONTOUR_AREA = 500     # px²
 
-BLUR_KERNEL      = (5,5)
-MORPH_KERNEL     = np.ones((3,3), np.uint8)
+BLUR_KERNEL      = (7,7)
+MORPH_KERNEL     = np.ones((5,5), np.uint8)
 
 TAKEOFF_Z        = 0.5     # m
 TAKEOFF_THRUST   = 30000   # raw units for manual burst
-ALT_P            = 3       # P-gain for altitude (m → m/s)
+ALT_P            = 0.5     # P-gain for altitude (m → m/s)
 LOG_PERIOD_MS    = 100     # 10 Hz logging
 # ——————————————————————————————————————————————
 
@@ -40,7 +41,6 @@ last_z = TAKEOFF_Z
 stop_flag = False
 frame_lock = threading.Lock()
 latest_frame = None
-frame_display_count = 0
 
 
 def signal_handler(sig, frame):
@@ -78,15 +78,12 @@ def frame_reader_thread(cap):
 
 
 def main():
-    global stop_flag, last_z, latest_frame, frame_display_count
+    global stop_flag, last_z, latest_frame
 
     cap = cv2.VideoCapture(STREAM_URL, cv2.CAP_FFMPEG)
     if not cap.isOpened():
         print(f"Error: can’t open {STREAM_URL}")
         return
-
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 
     threading.Thread(target=frame_reader_thread, args=(cap,), daemon=True).start()
 
@@ -101,18 +98,34 @@ def main():
         except KeyError as e:
             logging.warning(f"Logging init failed: {e}")
 
-        with MotionCommander(scf) as mc:
-            logging.info(">>> BURST TAKEOFF")
-            for _ in range(20):
-                mc._cf.commander.send_setpoint(0, 0, 0, TAKEOFF_THRUST)
-                time.sleep(0.05)
+        with MotionCommander(scf, default_height=TAKEOFF_Z) as mc:
+            time.sleep(4.0)
+
+            # logging.info(">>> BURST TAKEOFF")
+            # for _ in range(20):
+            #     mc._cf.commander.send_setpoint(0, 0, 0, TAKEOFF_THRUST)
+            #     time.sleep(0.05)
+
+            print("Take off success!")
+
             time.sleep(1.0)
             start_time = time.time()
             prev_time = start_time
 
+            height_desired = TAKEOFF_Z
             logging.info(">>> ENTERING CONTROL LOOP")
 
+
             while not stop_flag:
+
+                # new stuff
+                # Desired motion defaults
+                status_message = ""
+                forward_desired = 0.0
+                sideways_desired = 0.0
+                yaw_desired = 0.0
+                height_diff_desired = 0.0
+
                 now = time.time()
                 dt = now - prev_time
                 prev_time = now
@@ -125,7 +138,7 @@ def main():
                     continue
 
                 h, w = frame.shape[:2]
-                blur = cv2.blur(frame, BLUR_KERNEL)
+                blur = cv2.GaussianBlur(frame, BLUR_KERNEL, 0)
                 hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
                 mask = cv2.inRange(hsv, JUST_GREEN_LOWER, JUST_GREEN_UPPER)
                 mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, MORPH_KERNEL)
@@ -140,47 +153,73 @@ def main():
                     if M["m00"] > 0:
                         cX = int(M["m10"]/M["m00"])
                         cY = int(M["m01"]/M["m00"])
+                        cv2.circle(frame, (cX, cY), 5, (0,0,255), -1)
 
                         xDiff = cX - w//2
-                        yaw_speed = min(abs(xDiff) * 0.005, 180)
+                        yDiff = cY - h//2
 
                         if abs(xDiff) > 10:
+                            yaw_desired = xDiff * 0.05
                             if xDiff > 0:
                                 logging.info("Yawing right")
-                                mc.turn_right(yaw_speed * dt)
+                                status_message += "Yawing right "
+                                # mc.turn_right(yaw_speed * dt)
                             else:
                                 logging.info("Yawing left")
-                                mc.turn_left(yaw_speed * dt)
-                        else:
-                            mc.stop()
+                                status_message += "Yawing left "
+                                # mc.turn_left(yaw_speed * dt)
 
-                        z_err = TAKEOFF_Z - last_z
-                        vz = ALT_P * z_err
-                        if vz > 0:
-                            mc.up(min(vz * dt, 0.6))
-                        else:
-                            mc.down(min(-vz * dt, 0.6))
+
+                        if abs(yDiff) > 10:
+                            height_desired = yDiff * 0.05 
+
+                            if yDiff > 0:
+                                logging.info("Moving up")
+                                status_message += "Moving up "
+                            else:
+                                logging.info("Moving down")
+                                status_message += "Moving down "
+
+
+                        # z_err = TAKEOFF_Z - last_z
+                        # vz = ALT_P * z_err
+                        # if vz > 0:
+                        #     mc.up(min(vz * dt, 0.3))
+                        # else:
+                        #     mc.down(min(-vz * dt, 0.3))
 
                         (cx, cy), r = cv2.minEnclosingCircle(c)
                         diam = 2*r
                         if diam < TARGET_DIAM:
-                            mc.start_forward(min((TARGET_DIAM-diam)*K_DIST, MAX_FORWARD_SPD))
-                        else:
-                            mc.stop()
+                            forward_desired = (TARGET_DIAM - diam) * K_DIST
+                            forward_desired = min(forward_desired, MAX_FORWARD_SPD)
+                            # mc.forward(min((TARGET_DIAM-diam)*K_DIST, MAX_FORWARD_SPD))
 
                         cv2.circle(frame, (int(cx),int(cy)), int(r), (255,0,0), 2)
                         cv2.putText(frame, f"D={int(diam)}", (10,30),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
-                else:
-                    mc.stop()
 
-                frame_display_count += 1
-                if frame_display_count % 3 == 0:
-                    cv2.line(frame, (0,h//2),(w,h//2), (0,255,0),1)
-                    cv2.line(frame, (w//2,0),(w//2,h), (255,0,0),1)
-                    cv2.imshow("Green Follow", frame)
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        stop_flag = True
+                cv2.line(frame, (0,h//2),(w,h//2), (0,255,0),1)
+                cv2.line(frame, (w//2,0),(w//2,h), (255,0,0),1)
+
+
+                cv2.putText(frame, status_message, (10, 60),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+
+                cv2.imshow("Green Follow", frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    stop_flag = True
+
+                # we need to change the z from meters to meters / second
+                # height_desired = (height_desired - last_z) * ALT_P
+                # height_desired = max(min(height_desired, MAX_FORWARD_SPD), -MAX_FORWARD_SPD)
+                # height_desired = max(height_desired, TAKEOFF_Z)
+                # height_desired = TAKEOFF_Z + height_desired
+
+                print(forward_desired, sideways_desired, height_desired, yaw_desired)
+
+                # mc.start_linear_motion(forward_desired, sideways_desired, height_desired, yaw_desired)
+                mc.start_linear_motion(forward_desired, sideways_desired, 0, yaw_desired)
 
             logging.info(">>> LANDING")
             mc.land()
