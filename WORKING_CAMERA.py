@@ -1,3 +1,12 @@
+"""
+File name: CrazyFlieAI.py
+
+Authors: Luis Coronel , Philip Kwan, Saad Ahmed Khan Ghori , Kidus Tegene
+
+Description: This program will connect your camera and open a GUI with OpenCv allowing you to see 
+live green object tracking.
+"""
+
 import cv2
 import numpy as np
 import time
