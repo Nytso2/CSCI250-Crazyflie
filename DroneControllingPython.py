@@ -1,3 +1,13 @@
+"""
+File name: DroneControllingPython.py
+
+Authors: Luis Coronel , Philip Kwan, Saad Ahmed Khan Ghori , Kidus Tegene
+
+Description: This program will allow you to control your drone with a Python Script, using your
+keyboard : [A,S,↑,↓,→,←]
+"""
+
+
 import logging
 import time
 import threading
@@ -9,7 +19,7 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.motion_commander import MotionCommander
 
 # URI to the Crazyflie to connect to
-URI = 'radio://0/80/2M/E7E7E7E7E7'
+URI = 'radio://0/80/2M/E7E7E7E7E7' #use your connection (look up in Cfclient)
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
