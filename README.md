@@ -44,3 +44,9 @@ Install Python dependencies:
 
 ```bash
 pip install opencv-python numpy cflib
+```
+To correctly install cflib refer to : https://github.com/bitcraze/crazyflie-lib-python
+
+Other dependencies needed:
+```bash
+time , threading, logging, signal sys
