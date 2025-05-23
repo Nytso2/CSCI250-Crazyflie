@@ -49,5 +49,21 @@ To correctly install cflib refer to : https://github.com/bitcraze/crazyflie-lib-
 
 Other dependencies needed:
 ```bash
-time, threading, logging, signal sys
+time, threading, logging, signal, sys
+```
+### Setup Guide
+- Upload WebServerCamera.ino to your ESP32-CAM using Arduino IDE, and change name & password on credentials, to get your address, use Serial Monitor.
+- In CrazyFlie-Opencv-Following.py, set:
+```bash
+STREAM_URL = "http://<esp32-ip>:81/stream
+```
+Replace <esp32-ip> with your address provided from your WebServerCamera.ino
+- Run your python controller after chaning your URI:
+```bash
+URI = "radio://0/80/2M/E7E7E7E7E7"
+```
+Run :
+```bash
+python CrazyFlie-Opencv-Following.py
+
 ```
