@@ -15,7 +15,7 @@ from cflib.crazyflie.log import LogConfig
 from cflib.positioning.motion_commander import MotionCommander
 
 # ——— Configuration —————————————————————————
-STREAM_URL       = "http://192.168.142.85:81/stream"
+STREAM_URL       = "http://192.168.142.4:81/stream"
 URI              = "radio://0/80/2M/E7E7E7E7E7"
 
 # HSV neon-green
