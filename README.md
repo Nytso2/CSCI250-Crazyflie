@@ -73,11 +73,11 @@ python CrazyFlie-Opencv-Following.py
 - OpenCV live preview of tracking behavior
 - Thread-safe video frame capture
 
-## 📝 Technical Challenges & Documentation Notes
+## Technical Challenges & Documentation Notes
 
 During real-world testing, we aimed to mount the ESP32-CAM directly on the Crazyflie drone to create a fully autonomous, onboard tracking system. However, this presented several critical challenges:
 
-- **Power Constraints**: The ESP32-CAM requires more power than the Crazyflie can safely provide, especially during flight, which led to instability and power delivery issues.
+- **Power Constraints**: The ESP32-CAM requires more power than the Crazyflie can safely provide, especially during flight, which led to instability and power delivery issues. We used a Pololu U1V10F5 to set-up the 3.3v that the crazyflie delivers into stable 5v to provide current to the ESP-32 Camera. This caused a lot of power consumption and the battery died pretty quickly or the crazyflie wouldn't take off because of the weight and the amount of power that was being taken away from the camera, leaving the propellers with low energy.
   
 - **Weight Limitations**: Adding the ESP32-CAM, even with a lightweight mount, significantly impacted the drone’s flight time and maneuverability due to its limited thrust capacity.
 
@@ -89,9 +89,3 @@ As a result, we shifted to an **offboard vision architecture** where:
 - The Crazyflie receives movement commands from the host via the Crazyradio PA dongle.
 
 This hybrid setup preserves flight stability while allowing for real-time vision-based control.
-
-### 🔧 Tips for Future Implementations
-
-- Consider using a more power-efficient onboard vision module like **OpenMV** or **Himax** if true autonomy is required.
-- Explore **ESP-NOW** or similar peer-to-peer protocols to bypass router dependency and reduce latency.
-- If designing your own setup, build a **custom lightweight PCB** with voltage regulation and battery support to safely integrate vision sensors on micro drones.
