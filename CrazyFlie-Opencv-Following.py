@@ -1,3 +1,13 @@
+"""
+File name: CrazyFlieAI.py
+
+Authors: Luis Coronel , Philip Kwan, Saad Ahmed Khan Ghori , Kidus Tegene
+
+Description : This program will get data from a webserver from a ESP-32 Camera, and through the
+crazyflie dongle will communicate with a Crazyflie. Uses Opencv for green object detection (can
+be changed) to follow by going forward and yawing.
+"""
+
 #!/usr/bin/env python2
 from os import altsep
 import cv2
@@ -15,8 +25,9 @@ from cflib.crazyflie.log import LogConfig
 from cflib.positioning.motion_commander import MotionCommander
 
 # ——— Configuration —————————————————————————
-STREAM_URL       = "http://192.168.142.4:81/stream"
-URI              = "radio://0/80/2M/E7E7E7E7E7"
+STREAM_URL       = "http://192.168.142.4:81/stream" # camera http: port 81/stream
+URI              = "radio://0/80/2M/E7E7E7E7E7" # use your radio transmition transmition for your 
+                                                # crazyflie (use Cfclient to obtain it)
 
 # HSV neon-green
 JUST_GREEN_LOWER = np.array([40,100,50])
@@ -100,12 +111,7 @@ def main():
 
         with MotionCommander(scf, default_height=TAKEOFF_Z) as mc:
             time.sleep(4.0)
-
-            # logging.info(">>> BURST TAKEOFF")
-            # for _ in range(20):
-            #     mc._cf.commander.send_setpoint(0, 0, 0, TAKEOFF_THRUST)
-            #     time.sleep(0.05)
-
+            
             print("Take off success!")
 
             time.sleep(1.0)
@@ -118,8 +124,6 @@ def main():
 
             while not stop_flag:
 
-                # new stuff
-                # Desired motion defaults
                 status_message = ""
                 forward_desired = 0.0
                 sideways_desired = 0.0
@@ -163,37 +167,25 @@ def main():
                             if xDiff > 0:
                                 logging.info("Yawing right")
                                 status_message += "Yawing right "
-                                # mc.turn_right(yaw_speed * dt)
+                                
                             else:
                                 logging.info("Yawing left")
                                 status_message += "Yawing left "
-                                # mc.turn_left(yaw_speed * dt)
-
-
+                                
                         if abs(yDiff) > 10:
                             height_desired = yDiff * 0.05 
-
                             if yDiff > 0:
                                 logging.info("Moving up")
                                 status_message += "Moving up "
                             else:
                                 logging.info("Moving down")
-                                status_message += "Moving down "
-
-
-                        # z_err = TAKEOFF_Z - last_z
-                        # vz = ALT_P * z_err
-                        # if vz > 0:
-                        #     mc.up(min(vz * dt, 0.3))
-                        # else:
-                        #     mc.down(min(-vz * dt, 0.3))
-
+                                status_message += "Moving down "                        
                         (cx, cy), r = cv2.minEnclosingCircle(c)
                         diam = 2*r
                         if diam < TARGET_DIAM:
                             forward_desired = (TARGET_DIAM - diam) * K_DIST
                             forward_desired = min(forward_desired, MAX_FORWARD_SPD)
-                            # mc.forward(min((TARGET_DIAM-diam)*K_DIST, MAX_FORWARD_SPD))
+                            
 
                         cv2.circle(frame, (int(cx),int(cy)), int(r), (255,0,0), 2)
                         cv2.putText(frame, f"D={int(diam)}", (10,30),
@@ -201,24 +193,12 @@ def main():
 
                 cv2.line(frame, (0,h//2),(w,h//2), (0,255,0),1)
                 cv2.line(frame, (w//2,0),(w//2,h), (255,0,0),1)
-
-
                 cv2.putText(frame, status_message, (10, 60),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-
                 cv2.imshow("Green Follow", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     stop_flag = True
-
-                # we need to change the z from meters to meters / second
-                # height_desired = (height_desired - last_z) * ALT_P
-                # height_desired = max(min(height_desired, MAX_FORWARD_SPD), -MAX_FORWARD_SPD)
-                # height_desired = max(height_desired, TAKEOFF_Z)
-                # height_desired = TAKEOFF_Z + height_desired
-
                 print(forward_desired, sideways_desired, height_desired, yaw_desired)
-
-                # mc.start_linear_motion(forward_desired, sideways_desired, height_desired, yaw_desired)
                 mc.start_linear_motion(forward_desired, sideways_desired, 0, yaw_desired)
 
             logging.info(">>> LANDING")
