@@ -3,13 +3,13 @@
 [![Watch the video](https://img.youtube.com/vi/CYB0OmMhdNI/maxresdefault.jpg)](https://youtu.be/CYB0OmMhdNI)
 
 
-## 📌 Overview
+## Overview
 
 This project demonstrates a real-world implementation of green object tracking using a Crazyflie 2.1 drone and an ESP32-CAM module. We capture video using the ESP32-CAM, process it in real-time with OpenCV on a computer, and send flight commands to the drone via the Crazyradio PA USB dongle. This setup mimics vision-based autonomous tracking without heavy onboard computation.
 
 ---
 
-## 🧠 How It Works
+## How It Works
 
 1. **ESP32-CAM** streams live video over Wi-Fi using a lightweight web server (`WebServerCamera.ino`).
 2. **Python/OpenCV Script** (`CrazyFlie-Opencv-Following.py`) receives the video stream, identifies the green object (e.g., a ball), and calculates the required motion.
@@ -17,7 +17,7 @@ This project demonstrates a real-world implementation of green object tracking u
 
 ---
 
-## 📁 Files Included
+## Files Included
 
 - `WebServerCamera.ino`: Arduino code for ESP32-CAM to start a video stream on `http://<ip>:81/stream`.
 - `CrazyFlie-Opencv-Following.py`: Python script that connects to both the ESP32-CAM stream and the Crazyflie. It performs object detection and sends motion commands based on the target's position and size.
@@ -25,7 +25,7 @@ This project demonstrates a real-world implementation of green object tracking u
 
 ---
 
-## 🛠️ Requirements
+## Requirements
 
 ### Hardware
 - Crazyflie 2.1 drone
