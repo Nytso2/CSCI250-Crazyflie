@@ -65,5 +65,33 @@ URI = "radio://0/80/2M/E7E7E7E7E7"
 Run :
 ```bash
 python CrazyFlie-Opencv-Following.py
-
 ```
+### Features:
+- Features
+- Green object detection via HSV masking and contour detection
+- Smooth yaw adjustment and forward motion based on object position and size
+- OpenCV live preview of tracking behavior
+- Thread-safe video frame capture
+
+## 📝 Technical Challenges & Documentation Notes
+
+During real-world testing, we aimed to mount the ESP32-CAM directly on the Crazyflie drone to create a fully autonomous, onboard tracking system. However, this presented several critical challenges:
+
+- **Power Constraints**: The ESP32-CAM requires more power than the Crazyflie can safely provide, especially during flight, which led to instability and power delivery issues.
+  
+- **Weight Limitations**: Adding the ESP32-CAM, even with a lightweight mount, significantly impacted the drone’s flight time and maneuverability due to its limited thrust capacity.
+
+- **Connectivity Design**: The solution required both the ESP32 and the computer running OpenCV to be connected to the same Wi-Fi network, which can be limiting in outdoor or mobile scenarios.
+
+As a result, we shifted to an **offboard vision architecture** where:
+- The ESP32-CAM acts solely as a wireless camera, streaming video to the host machine.
+- The host machine handles all computer vision processing using OpenCV.
+- The Crazyflie receives movement commands from the host via the Crazyradio PA dongle.
+
+This hybrid setup preserves flight stability while allowing for real-time vision-based control.
+
+### 🔧 Tips for Future Implementations
+
+- Consider using a more power-efficient onboard vision module like **OpenMV** or **Himax** if true autonomy is required.
+- Explore **ESP-NOW** or similar peer-to-peer protocols to bypass router dependency and reduce latency.
+- If designing your own setup, build a **custom lightweight PCB** with voltage regulation and battery support to safely integrate vision sensors on micro drones.
