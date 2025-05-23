@@ -1,7 +1,7 @@
 # Crazyflie Real-World Green Ball Tracking with ESP32-CAM + OpenCV
 
 ![Demo Thumbnail](https://img.youtube.com/vi/9ssjhqC-uFs/0.jpg)
-[▶ Watch the Full Demo on YouTube](https://www.youtube.com/watch?v=9ssjhqC-uFs)
+
 
 ## 📌 Overview
 
