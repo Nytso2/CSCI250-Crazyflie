@@ -5,7 +5,8 @@ Authors: Luis Coronel , Philip Kwan, Saad Ahmed Khan Ghori , Kidus Tegene
 
 Description : This program will get data from a webserver from a ESP-32 Camera, and through the
 crazyflie dongle will communicate with a Crazyflie. Uses Opencv for green object detection (can
-be changed) to follow by going forward and yawing.
+be changed) to follow by going forward and yawing. It will also open OpenCv GUI to allow user 
+to see green ball tracking.
 """
 
 #!/usr/bin/env python2
